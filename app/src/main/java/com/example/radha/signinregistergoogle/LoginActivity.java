@@ -31,17 +31,21 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
-public class LoginActivity extends AppCompatActivity {
+public class LoginActivity extends AppCompatActivity implements GoogleApiClient.OnConnectionFailedListener {
 
     private EditText mLoginEmailField;
     private EditText mLoginPasswordField;
     private Button mLoginBtn;
     private Button mSignupBtn;
+    private SignInButton signInButton;
+
+    private GoogleApiClient googleApiClient;
 
     private FirebaseAuth mAuth;
 
     private ProgressDialog mProgress;
     private DatabaseReference mDatabaseUsers;
+    public static final int SIGN_IN_CODE = 777;
 
 
 
@@ -79,9 +83,51 @@ public class LoginActivity extends AppCompatActivity {
             }
         });
 
+        GoogleSignInOptions gso= new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestEmail()
+                .build();
+
+        googleApiClient = new GoogleApiClient.Builder(this)
+                .enableAutoManage(this,this)
+                .addApi(Auth.GOOGLE_SIGN_IN_API,gso)
+                .build();
+        signInButton=(SignInButton)findViewById(R.id.googleBtn);
+        signInButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent=Auth.GoogleSignInApi.getSignInIntent(googleApiClient);
+                startActivityForResult(intent,SIGN_IN_CODE);
+            }
+        });
+
 
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(requestCode == SIGN_IN_CODE){
+           GoogleSignInResult result = Auth.GoogleSignInApi.getSignInResultFromIntent(data);
+            handleSignInResult(result);
+        }
+    }
+
+    private void handleSignInResult(GoogleSignInResult result) {
+        if(result.isSuccess()){
+            goRegisterScreen();
+
+        }
+        else{
+            Toast.makeText(this,"login error please check",Toast.LENGTH_SHORT).show();
+        }
+
+    }
+
+    private void goRegisterScreen() {
+        Intent intent=new Intent(this,GoogleInfo.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_CLEAR_TASK|Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
+    }
 
     private void checkLogin() {
         String email= mLoginEmailField.getText().toString().trim();
@@ -130,6 +176,11 @@ public class LoginActivity extends AppCompatActivity {
 
             }
         });
+
+    }
+
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
 
     }
 }
